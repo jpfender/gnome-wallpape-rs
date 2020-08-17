@@ -46,7 +46,7 @@ fn write_config(config: &Config, fname: &String) -> Result<()> {
 }
 
 /// Change to a new wallpaper in the given directory
-fn change_wallpaper(dir: &String, rng: &mut ThreadRng) -> Result<()> {
+fn change_wallpaper(dir: &String, rng: &mut ThreadRng) -> Result<String> {
     let imgs = glob(format!("{}/*.*", dir).as_str())
         .with_context(|| format!("Could not read dir: {}", dir))?;
 
@@ -61,7 +61,7 @@ fn change_wallpaper(dir: &String, rng: &mut ThreadRng) -> Result<()> {
         .status()
         .with_context(|| "Could not set desktop background")?;
 
-    Ok(())
+    Ok(fname)
 }
 
 /// Perform one iteration of the change-wallpaper-and-sleep cycle
