@@ -39,6 +39,8 @@ To run indefinitely, call:
 $ wallch run
 ```
 
+This is probably best called as a systemd service.
+
 The default interval between wallpaper changes is 10 minutes if no duration is specified.
 This can be changed at runtime by editing the config or calling:
 
