@@ -1,0 +1,17 @@
+[package]
+name = "gnome-wallpape-rs"
+version = "0.1.0"
+authors = ["Jakob Pfender <jakob.pfender@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.32"
+clap = "~2.33"
+dirs = "3.0"
+glob = "0.3.0"
+humanize-rs = "0.1"
+rand = "0.7.3"
+serde = { version = "1.0.115", features = ["derive"] }
+toml = "0.5"
