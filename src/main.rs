@@ -117,6 +117,16 @@ fn toggle(config_str: &String, rng: &mut ThreadRng) -> Result<()> {
     Ok(())
 }
 
+/// Return the path of the current wallpaper file, stripped of the "file://" prefix
+fn current(config: &Config) -> Option<String> {
+    let current = &config.current;
+
+    match current {
+        Some(s) => Some(s.replace("file://", "")),
+        _ => None,
+    }
+}
+
 fn main() -> Result<()> {
     let matches = App::new("GNOME Wallpape-rs")
         .version("0.1.0")
@@ -144,6 +154,7 @@ fn main() -> Result<()> {
             SubCommand::with_name("toggle")
                 .about("Change wallpaper directory and apply a new wallpaper"),
         )
+        .subcommand(SubCommand::with_name("current").about("Print current wallpaper path"))
         .get_matches();
 
     let home_dir = dirs::home_dir().unwrap().to_str().unwrap().to_string();
@@ -174,6 +185,8 @@ fn main() -> Result<()> {
         next(&config_str, &mut rng)?;
     } else if let Some(_) = matches.subcommand_matches("toggle") {
         toggle(&config_str, &mut rng)?;
+    } else if let Some(_) = matches.subcommand_matches("current") {
+        println!("{}", current(&config).unwrap_or(String::new()));
     }
 
     Ok(())
