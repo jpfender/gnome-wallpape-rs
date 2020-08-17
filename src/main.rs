@@ -148,6 +148,14 @@ fn main() -> Result<()> {
                 .help("Set/change wallpaper duration")
                 .takes_value(true),
         )
+        .arg(
+            Arg::with_name("active")
+                .short("a")
+                .long("active")
+                .value_name("ACTIVE_DIR")
+                .help("Set active wallpaper directory (index of dirs vector)")
+                .takes_value(true),
+        )
         .subcommand(SubCommand::with_name("run").about("Starts the wallpaper changer loop"))
         .subcommand(SubCommand::with_name("next").about("Change to a new wallpaper"))
         .subcommand(
@@ -170,6 +178,11 @@ fn main() -> Result<()> {
     // Use user-specified duration if present
     if let Some(d) = matches.value_of("duration") {
         config.duration = Some(String::from(d));
+    }
+
+    // Use user-specified active directory if present
+    if let Some(a) = matches.value_of("active") {
+        config.active_dir = Some(a.parse()?);
     }
 
     // Config has been updated with values for all optional parameters; save it back to file
