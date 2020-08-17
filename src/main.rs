@@ -11,7 +11,7 @@ use std::thread;
 struct Config {
     dirs: Vec<String>,
     duration: Option<String>,
-    current: Option<usize>,
+    active_dir: Option<usize>,
 }
 
 /// Open a given config file and try to parse the contents into a Config struct
@@ -25,12 +25,12 @@ fn parse_config(fname: &String) -> Result<Config> {
     // Duration may be unspecified; use 10 minutes as default
     let duration = config.duration.unwrap_or(String::from("10m"));
 
-    // The current directory may be unspecified; use the first directory in `dirs` as default
-    let current = config.current.unwrap_or(0);
+    // The active directory may be unspecified; use the first directory in `dirs` as default
+    let active_dir = config.active_dir.unwrap_or(0);
 
-    // Save duration and current directory to the config
+    // Save duration and active directory to the config
     config.duration = Some(duration);
-    config.current = Some(current);
+    config.active_dir = Some(active_dir);
 
     Ok(config)
 }
@@ -68,8 +68,8 @@ fn change_wallpaper(dir: &String, rng: &mut ThreadRng) -> Result<()> {
 fn run(config_str: &String, rng: &mut ThreadRng) -> Result<()> {
     // We re-read the config in every loop iteration so it can be changed on the fly
     let config = parse_config(&config_str)?;
-    let current = config.current.unwrap_or(0);
     let duration = config.duration.unwrap_or(String::from("10m"));
+    let active_dir = config.active_dir.unwrap_or(0);
 
     let duration = humanize_rs::duration::parse(&duration)
         .with_context(|| format!("Could not parse duration"))?;
@@ -84,7 +84,7 @@ fn run(config_str: &String, rng: &mut ThreadRng) -> Result<()> {
 /// Choose and apply a new random wallpaper
 fn next(config_str: &String, rng: &mut ThreadRng) -> Result<()> {
     let config = parse_config(&config_str)?;
-    let current = config.current.unwrap_or(0);
+    let active_dir = config.active_dir.unwrap_or(0);
 
     change_wallpaper(&config.dirs[current], rng)?;
 
@@ -94,11 +94,11 @@ fn next(config_str: &String, rng: &mut ThreadRng) -> Result<()> {
 /// Switch to the next directory in the dirs list and apply a new wallpaper from it
 fn toggle(config_str: &String, rng: &mut ThreadRng) -> Result<()> {
     let mut config = parse_config(&config_str)?;
-    let current = config.current.unwrap_or(0);
+    let active_dir = config.active_dir.unwrap_or(0);
 
-    // Switch current dir to next in dirs list, wrapping around
-    config.current = if current + 1 < config.dirs.len() {
-        Some(current + 1)
+    // Switch active dir to next in dirs list, wrapping around
+    config.active_dir = if active_dir + 1 < config.dirs.len() {
+        Some(active_dir + 1)
     } else {
         Some(0)
     };
