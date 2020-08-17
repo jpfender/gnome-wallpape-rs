@@ -12,6 +12,7 @@ struct Config {
     dirs: Vec<String>,
     duration: Option<String>,
     active_dir: Option<usize>,
+    current: Option<String>,
 }
 
 /// Open a given config file and try to parse the contents into a Config struct
@@ -67,14 +68,16 @@ fn change_wallpaper(dir: &String, rng: &mut ThreadRng) -> Result<String> {
 /// Perform one iteration of the change-wallpaper-and-sleep cycle
 fn run(config_str: &String, rng: &mut ThreadRng) -> Result<()> {
     // We re-read the config in every loop iteration so it can be changed on the fly
-    let config = parse_config(&config_str)?;
-    let duration = config.duration.unwrap_or(String::from("10m"));
+    let mut config = parse_config(&config_str)?;
     let active_dir = config.active_dir.unwrap_or(0);
 
+    let current = change_wallpaper(&config.dirs[active_dir], rng)?;
+    config.current = Some(current);
+    write_config(&config, config_str)?;
+
+    let duration = config.duration.unwrap_or(String::from("10m"));
     let duration = humanize_rs::duration::parse(&duration)
         .with_context(|| format!("Could not parse duration"))?;
-
-    change_wallpaper(&config.dirs[current], rng)?;
 
     thread::sleep(duration);
 
@@ -83,10 +86,12 @@ fn run(config_str: &String, rng: &mut ThreadRng) -> Result<()> {
 
 /// Choose and apply a new random wallpaper
 fn next(config_str: &String, rng: &mut ThreadRng) -> Result<()> {
-    let config = parse_config(&config_str)?;
+    let mut config = parse_config(&config_str)?;
     let active_dir = config.active_dir.unwrap_or(0);
 
-    change_wallpaper(&config.dirs[current], rng)?;
+    let current = change_wallpaper(&config.dirs[active_dir], rng)?;
+    config.current = Some(current);
+    write_config(&config, config_str)?;
 
     Ok(())
 }
