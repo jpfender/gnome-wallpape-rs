@@ -36,9 +36,9 @@ fn parse_config(fname: &String) -> Result<Config> {
 }
 
 /// Saves a given config to a file
-fn write_config(config: Config, fname: &String) -> Result<()> {
+fn write_config(config: &Config, fname: &String) -> Result<()> {
     let conf_str =
-        toml::to_string(&config).with_context(|| format!("Could not serialize config"))?;
+        toml::to_string(config).with_context(|| format!("Could not serialize config"))?;
 
     std::fs::write(fname, conf_str).with_context(|| format!("Could not write config to file"))?;
 
@@ -104,7 +104,7 @@ fn toggle(config_str: &String, rng: &mut ThreadRng) -> Result<()> {
     };
 
     // Save the new config
-    write_config(config, &config_str)?;
+    write_config(&config, &config_str)?;
 
     // Choose a new wallpaper from the new dir
     next(&config_str, rng)?;
@@ -157,7 +157,7 @@ fn main() -> Result<()> {
     }
 
     // Config has been updated with values for all optional parameters; save it back to file
-    write_config(config, &config_str)?;
+    write_config(&config, &config_str)?;
 
     let mut rng = rand::thread_rng();
 
