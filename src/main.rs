@@ -13,6 +13,7 @@ struct Config {
     duration: Option<String>,
     active_dir: Option<usize>,
     current: Option<String>,
+    next: Option<Vec<String>>,
 }
 
 /// Open a given config file and try to parse the contents into a Config struct
@@ -46,8 +47,8 @@ fn write_config(config: &Config, fname: &String) -> Result<()> {
     Ok(())
 }
 
-/// Change to a new wallpaper in the given directory
-fn change_wallpaper(dir: &String, rng: &mut ThreadRng) -> Result<String> {
+/// Randomly select a new wallpaper from the given directory
+fn select_new(dir: &String, rng: &mut ThreadRng) -> Result<String> {
     let imgs = glob(format!("{}/*.*", dir).as_str())
         .with_context(|| format!("Could not read dir: {}", dir))?;
 
@@ -55,26 +56,67 @@ fn change_wallpaper(dir: &String, rng: &mut ThreadRng) -> Result<String> {
         .choose(rng)
         .with_context(|| format!("Could not pick image from dir: {}", dir))?;
 
-    let fname = format!("file://{}", img.unwrap().display());
+    Ok(format!("file://{}", img.unwrap().display()))
+}
 
+/// Select the next wallpaper for each directory and "cache" it (i.e. store it in config)
+fn cache_next(config_str: &String, rng: &mut ThreadRng) -> Result<()> {
+    let mut config = parse_config(&config_str)?;
+
+    let mut next: Vec<String> = Vec::new();
+    for dir in &config.dirs {
+        next.push(select_new(&dir, rng)?);
+    }
+
+    config.next = Some(next);
+    write_config(&config, config_str)?;
+
+    Ok(())
+}
+
+/// Get the next cached wallpaper from the given directory or select a new one
+fn get_next(config_str: &String, rng: &mut ThreadRng) -> Result<String> {
+    let config = parse_config(&config_str)?;
+    let active_dir = config.active_dir.unwrap_or(0);
+
+    if let Some(next) = config.next {
+        // Next wallpaper has been pre-set; return it
+        Ok(String::from(&next[active_dir]))
+    } else {
+        // No pre-set next wallpaper; select one on the fly
+        Ok(select_new(&config.dirs[active_dir], rng)?)
+    }
+}
+
+/// Set the wallpaper to a given file
+fn set_wallpaper(fname: &String) -> Result<()> {
     std::process::Command::new("gsettings")
         .args(&["set", "org.gnome.desktop.background", "picture-uri", &fname])
         .status()
         .with_context(|| "Could not set desktop background")?;
 
-    Ok(fname)
+    Ok(())
 }
 
 /// Perform one iteration of the change-wallpaper-and-sleep cycle
 fn run(config_str: &String, rng: &mut ThreadRng) -> Result<()> {
     // We re-read the config in every loop iteration so it can be changed on the fly
     let mut config = parse_config(&config_str)?;
-    let active_dir = config.active_dir.unwrap_or(0);
 
-    let current = change_wallpaper(&config.dirs[active_dir], rng)?;
+    // Get or select the next WP
+    let current = get_next(&config_str, rng)?;
+
+    // Set it
+    set_wallpaper(&current)?;
+
+    // Save it to config
     config.current = Some(current);
     write_config(&config, config_str)?;
 
+    // Pre-select the next WP
+    cache_next(&config_str, rng)?;
+
+    // Wait for next cycle
     let duration = config.duration.unwrap_or(String::from("10m"));
     let duration = humanize_rs::duration::parse(&duration)
         .with_context(|| format!("Could not parse duration"))?;
@@ -87,11 +129,14 @@ fn run(config_str: &String, rng: &mut ThreadRng) -> Result<()> {
 /// Choose and apply a new random wallpaper
 fn next(config_str: &String, rng: &mut ThreadRng) -> Result<()> {
     let mut config = parse_config(&config_str)?;
-    let active_dir = config.active_dir.unwrap_or(0);
 
-    let current = change_wallpaper(&config.dirs[active_dir], rng)?;
+    let current = get_next(config_str, rng)?;
+    set_wallpaper(&current)?;
+
     config.current = Some(current);
     write_config(&config, config_str)?;
+
+    cache_next(&config_str, rng)?;
 
     Ok(())
 }
